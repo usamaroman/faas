@@ -37,32 +37,36 @@ type BillingData struct {
 }
 
 type Tariff struct {
-	ID        int     `json:"ID"`
-	Name      string  `json:"Name"`
-	ExecPrice float64 `json:"ExecPrice"`
-	MemPrice  float64 `json:"MemPrice"`
-	CpuPrice  float64 `json:"CpuPrice"`
+	ID                      int     `json:"ID"`
+	Name                    string  `json:"Name"`
+	ExecPrice               float64 `json:"ExecPrice"`
+	MemPrice                float64 `json:"MemPrice"`
+	CpuPrice                float64 `json:"CpuPrice"`
+	ColdStartPricePerSecond float64 `json:"ColdStartPricePerSecond"`
 }
 
 type BillingResponse struct {
-	TenantID     string    `json:"tenant_id"`
-	PodName      string    `json:"pod_name"`
-	DurationSec  int64     `json:"duration_sec"`
-	MemoryMB     float64   `json:"memory_mb"`
-	ExecCost     float64   `json:"exec_cost"`
-	MemoryCost   float64   `json:"memory_cost"`
-	TotalCost    float64   `json:"total_cost"`
-	TariffName   string    `json:"tariff_name"`
-	CalculatedAt time.Time `json:"calculated_at"`
+	TenantID      string    `json:"tenant_id"`
+	PodName       string    `json:"pod_name"`
+	DurationSec   int64     `json:"duration_sec"`
+	MemoryMB      float64   `json:"memory_mb"`
+	ExecCost      float64   `json:"exec_cost"`
+	MemoryCost    float64   `json:"memory_cost"`
+	ColdStartCost float64   `json:"cold_start_cost"`
+	TotalCost     float64   `json:"total_cost"`
+	TariffName    string    `json:"tariff_name"`
+	CalculatedAt  time.Time `json:"calculated_at"`
 }
 
 type NotificationMessage struct {
-	TenantID  string  `json:"tenant_id"`
-	Email     string  `json:"email"`
-	MemoryMB  float64 `json:"memory_mb"`
-	TotalCost float64 `json:"total_cost"`
-	PodName   string  `json:"pod_name"`
-	Timestamp int64   `json:"timestamp"`
+	TenantID         string  `json:"tenant_id"`
+	Email            string  `json:"email"`
+	MemoryMB         float64 `json:"memory_mb"`
+	TotalCost        float64 `json:"total_cost"`
+	PodName          string  `json:"pod_name"`
+	Timestamp        int64   `json:"timestamp"`
+	ColdStartSeconds int64   `json:"cold_start_seconds"`
+	ColdStartCost    float64 `json:"cold_start_cost"`
 }
 
 func main() {
@@ -198,11 +202,18 @@ func (i *Invoicer) getBilling(c *gin.Context) {
 		return
 	}
 
-	var totalExecCost, totalMemoryCost float64
+	var totalExecCost, totalMemoryCost, totalColdStartCost float64
 	var totalDuration int64
 	var totalMemoryMB float64
 
 	resp := make([]BillingResponse, 0, len(billingData))
+
+	coldStartSeconds, err := i.getColdStartSecondsFromClickHouse(tenantID)
+	if err != nil {
+		slog.Error("failed to compute cold start seconds", slog.String("error", err.Error()))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to compute cold start"})
+		return
+	}
 
 	for _, data := range billingData {
 		duration := int64(data.EndTime.Sub(data.StartTime).Seconds())
@@ -216,17 +227,19 @@ func (i *Invoicer) getBilling(c *gin.Context) {
 		totalExecCost += execCost
 		totalMemoryCost += memoryCost
 
-		totalCost := totalExecCost + totalMemoryCost
+		totalColdStartCost = float64(coldStartSeconds) * tariff.ColdStartPricePerSecond
+		totalCost := totalExecCost + totalMemoryCost + totalColdStartCost
 		resp = append(resp, BillingResponse{
-			TenantID:     tenantID,
-			PodName:      billingData[0].PodName,
-			DurationSec:  totalDuration,
-			MemoryMB:     totalMemoryMB,
-			ExecCost:     totalExecCost,
-			MemoryCost:   totalMemoryCost,
-			TotalCost:    totalCost,
-			TariffName:   tariff.Name,
-			CalculatedAt: time.Now(),
+			TenantID:      tenantID,
+			PodName:       billingData[0].PodName,
+			DurationSec:   totalDuration,
+			MemoryMB:      totalMemoryMB,
+			ExecCost:      totalExecCost,
+			MemoryCost:    totalMemoryCost,
+			ColdStartCost: totalColdStartCost,
+			TotalCost:     totalCost,
+			TariffName:    tariff.Name,
+			CalculatedAt:  time.Now(),
 		})
 	}
 
@@ -262,6 +275,35 @@ func (i *Invoicer) getBillingDataFromClickHouse(tenantID string) ([]BillingData,
 	}
 
 	return result, nil
+}
+
+// getColdStartSecondsFromClickHouse calculates the sum of cold start seconds for a tenant.
+func (i *Invoicer) getColdStartSecondsFromClickHouse(tenantID string) (int64, error) {
+	// For each start event, find the first metric (non-start) timestamp >= start_time per pod
+	query := `
+        WITH starts AS (
+            SELECT tenant, pod, start_time
+            FROM function_metrics_local
+            WHERE tenant = ? AND type = 'start' AND start_time IS NOT NULL
+        ), first_metrics AS (
+            SELECT tenant, pod, min(timestamp) AS first_metric_ts
+            FROM function_metrics_local
+            WHERE (type IS NULL OR type != 'start')
+            GROUP BY tenant, pod
+        )
+        SELECT coalesce(
+            sum(greatest(0, dateDiff('second', s.start_time, fm.first_metric_ts))), 0
+        ) AS total_cold_start_seconds
+        FROM starts s
+        LEFT JOIN first_metrics fm USING (tenant, pod)
+    `
+
+	row := i.clickhouseClient.QueryRow(context.Background(), query, tenantID)
+	var total int64
+	if err := row.Scan(&total); err != nil {
+		return 0, err
+	}
+	return total, nil
 }
 
 func (i *Invoicer) getTariffFromPriceService(tariffID int) (*Tariff, error) {
@@ -310,25 +352,34 @@ func (i *Invoicer) sendStopNotification(action types.Action) {
 
 	// Calculate costs
 	var totalMemoryMB, totalCost float64
+	// compute cold start seconds for this tenant (could refine to this pod if needed)
+	coldStartSeconds, err := i.getColdStartSecondsFromClickHouse(action.Tenant)
+	if err != nil {
+		slog.Error("failed to compute cold start seconds for notification", slog.String("error", err.Error()))
+		coldStartSeconds = 0
+	}
 	for _, data := range billingData {
 		if data.PodName == action.Pod {
 			duration := int64(data.EndTime.Sub(data.StartTime).Seconds())
 			execCost := float64(duration) * tariff.ExecPrice
 			memoryCost := data.TotalMemoryConsumedMB * tariff.MemPrice
 			totalMemoryMB = data.TotalMemoryConsumedMB
-			totalCost = execCost + memoryCost
+			coldStartCost := float64(coldStartSeconds) * tariff.ColdStartPricePerSecond
+			totalCost = execCost + memoryCost + coldStartCost
 			break
 		}
 	}
 
 	// Create notification message
 	notification := NotificationMessage{
-		TenantID:  action.Tenant,
-		Email:     action.Tenant,
-		MemoryMB:  totalMemoryMB,
-		TotalCost: totalCost,
-		PodName:   action.Pod,
-		Timestamp: time.Now().Unix(),
+		TenantID:         action.Tenant,
+		Email:            action.Tenant,
+		MemoryMB:         totalMemoryMB,
+		TotalCost:        totalCost,
+		PodName:          action.Pod,
+		Timestamp:        time.Now().Unix(),
+		ColdStartSeconds: coldStartSeconds,
+		ColdStartCost:    float64(coldStartSeconds) * tariff.ColdStartPricePerSecond,
 	}
 
 	// Send notification to Kafka

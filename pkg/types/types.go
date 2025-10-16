@@ -8,6 +8,9 @@ type Metric struct {
 	MemMB      float64 `json:"mem_mb"`
 	Timestamp  int64   `json:"timestamp"`
 	Tenant     string  `json:"tenant"`
+	Type       string  `json:"type,omitempty"`
+	StartTime  int64   `json:"start_time,omitempty"`
+	EndTime    int64   `json:"end_time,omitempty"`
 }
 
 type Action struct {

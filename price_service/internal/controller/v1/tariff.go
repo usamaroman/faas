@@ -67,10 +67,11 @@ func (r *tariffRoutes) createNewTariff(c *gin.Context) {
 	}
 
 	createdTariff, err := r.tariffService.Create(c, &service.TariffInput{
-		Name:      tariff.Name,
-		ExecPrice: tariff.ExecPrice,
-		MemPrice:  tariff.MemPrice,
-		CpuPrice:  tariff.CpuPrice,
+		Name:                    tariff.Name,
+		ExecPrice:               tariff.ExecPrice,
+		MemPrice:                tariff.MemPrice,
+		CpuPrice:                tariff.CpuPrice,
+		ColdStartPricePerSecond: tariff.ColdStartPricePerSecond,
 	})
 	if err != nil {
 		slog.Error("failed to create tariff", err.Error())
@@ -187,10 +188,11 @@ func (r *tariffRoutes) updateTariffByID(c *gin.Context) {
 	}
 
 	updatedTariff, err := r.tariffService.UpdateByID(c, id, &service.TariffInput{
-		Name:      updateData.Name,
-		ExecPrice: updateData.ExecPrice,
-		MemPrice:  updateData.MemPrice,
-		CpuPrice:  updateData.CpuPrice,
+		Name:                    updateData.Name,
+		ExecPrice:               updateData.ExecPrice,
+		MemPrice:                updateData.MemPrice,
+		CpuPrice:                updateData.CpuPrice,
+		ColdStartPricePerSecond: updateData.ColdStartPricePerSecond,
 	})
 	if err != nil {
 		if errors.Is(err, service.ErrTariffNotFound) {

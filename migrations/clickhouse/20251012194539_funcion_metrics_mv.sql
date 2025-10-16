@@ -8,7 +8,10 @@ SELECT
     cpu_percent,
     mem_mb,
     toDateTime(timestamp) AS timestamp,
-    tenant
+    tenant,
+    type,
+    if(start_time = 0, NULL, toDateTime(start_time)) AS start_time,
+    if(end_time = 0, NULL, toDateTime(end_time)) AS end_time
 FROM metrics.function_metrics_kafka;
 -- +goose StatementEnd
 

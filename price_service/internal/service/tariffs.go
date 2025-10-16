@@ -15,10 +15,11 @@ type TariffService struct {
 }
 
 type TariffInput struct {
-	Name      string  `json:"name"`
-	ExecPrice float64 `json:"exec_price"`
-	MemPrice  float64 `json:"mem_price"`
-	CpuPrice  float64 `json:"cpu_price"`
+	Name                    string  `json:"name"`
+	ExecPrice               float64 `json:"exec_price"`
+	MemPrice                float64 `json:"mem_price"`
+	CpuPrice                float64 `json:"cpu_price"`
+	ColdStartPricePerSecond float64 `json:"cold_start_price_per_second"`
 }
 
 func NewTariffService(tariffRepo repo.Tariff) *TariffService {
@@ -31,10 +32,11 @@ func NewTariffService(tariffRepo repo.Tariff) *TariffService {
 
 func (s *TariffService) Create(ctx context.Context, body *TariffInput) (*entity.Tariff, error) {
 	tariff, err := s.tariffRepo.Create(ctx, &entity.Tariff{
-		Name:      body.Name,
-		ExecPrice: body.ExecPrice,
-		MemPrice:  body.MemPrice,
-		CpuPrice:  body.CpuPrice,
+		Name:                    body.Name,
+		ExecPrice:               body.ExecPrice,
+		MemPrice:                body.MemPrice,
+		CpuPrice:                body.CpuPrice,
+		ColdStartPricePerSecond: body.ColdStartPricePerSecond,
 	})
 	if err != nil {
 		slog.Error("failed to create tariff", err.Error())
@@ -63,10 +65,11 @@ func (s *TariffService) GetAll(ctx context.Context, filters *entity.TariffFilter
 
 func (s *TariffService) UpdateByID(ctx context.Context, id int, updates *TariffInput) (*entity.Tariff, error) {
 	updatedTariff, err := s.tariffRepo.UpdateByID(ctx, id, &entity.Tariff{
-		Name:      updates.Name,
-		ExecPrice: updates.ExecPrice,
-		MemPrice:  updates.MemPrice,
-		CpuPrice:  updates.CpuPrice,
+		Name:                    updates.Name,
+		ExecPrice:               updates.ExecPrice,
+		MemPrice:                updates.MemPrice,
+		CpuPrice:                updates.CpuPrice,
+		ColdStartPricePerSecond: updates.ColdStartPricePerSecond,
 	})
 	if err != nil {
 		if errors.Is(err, repoerrors.ErrNotFound) {

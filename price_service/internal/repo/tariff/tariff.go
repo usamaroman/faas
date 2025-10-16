@@ -5,9 +5,9 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/usamaroman/faas_demo/pkg/postgresql"
 	"github.com/usamaroman/faas_demo/price_service/internal/entity"
 	"github.com/usamaroman/faas_demo/price_service/internal/repo/repoerrors"
-	"github.com/usamaroman/faas_demo/pkg/postgresql"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -25,9 +25,9 @@ func NewRepo(pg *postgresql.Postgres) *Repo {
 
 func (r *Repo) Create(ctx context.Context, body *entity.Tariff) (*entity.Tariff, error) {
 	q, args, err := r.Builder.Insert("tariffs").
-		Columns("name", "exec_price", "mem_price", "cpu_price").
-		Values(body.Name, body.ExecPrice, body.MemPrice, body.CpuPrice).
-		Suffix("RETURNING id, exec_price, mem_price, cpu_price, created_at, updated_at").
+		Columns("name", "exec_price", "mem_price", "cpu_price", "cold_start_price_per_second").
+		Values(body.Name, body.ExecPrice, body.MemPrice, body.CpuPrice, body.ColdStartPricePerSecond).
+		Suffix("RETURNING id, exec_price, mem_price, cpu_price, cold_start_price_per_second, created_at, updated_at").
 		ToSql()
 	if err != nil {
 		slog.Error("failed to make query", err.Error())
@@ -41,6 +41,7 @@ func (r *Repo) Create(ctx context.Context, body *entity.Tariff) (*entity.Tariff,
 		&body.ExecPrice,
 		&body.MemPrice,
 		&body.CpuPrice,
+		&body.ColdStartPricePerSecond,
 		&body.CreatedAt,
 		&body.UpdatedAt,
 	); err != nil {
@@ -72,6 +73,7 @@ func (r *Repo) GetByID(ctx context.Context, id int) (*entity.Tariff, error) {
 		&tariff.ExecPrice,
 		&tariff.MemPrice,
 		&tariff.CpuPrice,
+		&tariff.ColdStartPricePerSecond,
 		&tariff.CreatedAt,
 		&tariff.UpdatedAt,
 	); err != nil {
@@ -89,7 +91,16 @@ func (r *Repo) GetByID(ctx context.Context, id int) (*entity.Tariff, error) {
 
 func (r *Repo) GetAll(ctx context.Context, filters *entity.TariffFilters) ([]entity.Tariff, error) {
 	qb := r.Builder.
-		Select("*").
+		Select(
+			"id",
+			"name",
+			"exec_price",
+			"mem_price",
+			"cpu_price",
+			"cold_start_price_per_second",
+			"created_at",
+			"updated_at",
+		).
 		From("tariffs")
 
 	q, args, err := qb.Limit(filters.Limit).
@@ -110,12 +121,30 @@ func (r *Repo) GetAll(ctx context.Context, filters *entity.TariffFilters) ([]ent
 	}
 	defer rows.Close()
 
-	tariffs, err := pgx.CollectRows(rows, pgx.RowToStructByName[entity.Tariff])
-	if err != nil {
-		slog.Error("failed to collect rows", err.Error())
+	var tariffs []entity.Tariff
+	for rows.Next() {
+		var t entity.Tariff
+		if err := rows.Scan(
+			&t.ID,
+			&t.Name,
+			&t.ExecPrice,
+			&t.MemPrice,
+			&t.CpuPrice,
+			&t.ColdStartPricePerSecond,
+			&t.CreatedAt,
+			&t.UpdatedAt,
+		); err != nil {
+			slog.Error("failed to scan tariff row", err.Error())
+			return nil, err
+		}
+		tariffs = append(tariffs, t)
 	}
 
-	return tariffs, err
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return tariffs, nil
 }
 
 func (r *Repo) UpdateByID(ctx context.Context, id int, updates *entity.Tariff) (*entity.Tariff, error) {
@@ -137,8 +166,12 @@ func (r *Repo) UpdateByID(ctx context.Context, id int, updates *entity.Tariff) (
 		builder = builder.Set("cpu_price", updates.CpuPrice)
 	}
 
+	if updates.ColdStartPricePerSecond != 0 {
+		builder = builder.Set("cold_start_price_per_second", updates.ColdStartPricePerSecond)
+	}
+
 	q, args, err := builder.Where(squirrel.Eq{"id": id}).
-		Suffix("RETURNING id, exec_price, mem_price, cpu_price, created_at, updated_at").
+		Suffix("RETURNING id, exec_price, mem_price, cpu_price, cold_start_price_per_second, created_at, updated_at").
 		ToSql()
 	if err != nil {
 		slog.Error("failed to build SQL query", slog.Any("id", id), err.Error())
@@ -152,6 +185,7 @@ func (r *Repo) UpdateByID(ctx context.Context, id int, updates *entity.Tariff) (
 		&updates.ExecPrice,
 		&updates.MemPrice,
 		&updates.CpuPrice,
+		&updates.ColdStartPricePerSecond,
 		&updates.CreatedAt,
 		&updates.UpdatedAt,
 	); err != nil {

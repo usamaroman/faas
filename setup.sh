@@ -30,6 +30,6 @@ GOOSE_DBSTRING="tcp://user:1234@localhost:9000/metrics" ./bin/goose clickhouse u
 
 # Step 5: Run application services 
 echo "Step 5: Starting application services..."
-docker compose up -d meter price_service notifier invoicer control_plane
+docker compose up --build -d meter price_service notifier invoicer control_plane
 
 echo "Setup completed successfully."

@@ -59,3 +59,7 @@ func (c *Client) Close() error {
 func (c *Client) Query(ctx context.Context, query string, args ...interface{}) (driver.Rows, error) {
 	return c.conn.Query(ctx, query, args...)
 }
+
+func (c *Client) QueryRow(ctx context.Context, query string, args ...interface{}) driver.Row {
+	return c.conn.QueryRow(ctx, query, args...)
+}

@@ -151,7 +151,7 @@ services:
       - ./config:/app/config
     environment:     
       KAFKA_ADDRS: kafka:29092
-      KAFKA_TOPIC: function_actions
+      FUNCTION_METRICS_TOPIC: function_metrics
     ports:
       - "8080:8080"
 
