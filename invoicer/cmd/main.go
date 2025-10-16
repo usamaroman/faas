@@ -37,11 +37,11 @@ type BillingData struct {
 }
 
 type Tariff struct {
-	ID        int     `json:"id"`
-	Name      string  `json:"name"`
-	ExecPrice float64 `json:"exec_price"`
-	MemPrice  float64 `json:"mem_price"`
-	CpuPrice  float64 `json:"cpu_price"`
+	ID        int     `json:"ID"`
+	Name      string  `json:"Name"`
+	ExecPrice float64 `json:"ExecPrice"`
+	MemPrice  float64 `json:"MemPrice"`
+	CpuPrice  float64 `json:"CpuPrice"`
 }
 
 type BillingResponse struct {
