@@ -1,0 +1,249 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/v1/tariff": {
+            "get": {
+                "description": "Получить все тарифы",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "тарифы"
+                ],
+                "summary": "Получить все тарифы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.GetAllTariffs"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tariff/": {
+            "post": {
+                "description": "Создание нового тарифа",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "тарифы"
+                ],
+                "summary": "Создание нового тарифа",
+                "parameters": [
+                    {
+                        "description": "Тело запроса",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.CreateTariff"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Tariff"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tariff/{id}": {
+            "get": {
+                "description": "Получить тариф по идентификатору",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "тарифы"
+                ],
+                "summary": "Получить тариф по идентификатору",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Идентификатор тарифа",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Tariff"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Удалить тариф по его идентификатору",
+                "tags": [
+                    "тарифы"
+                ],
+                "summary": "Удалить тариф по его идентификатору",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Идентификатор тарифа",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "description": "Обновить тариф по его идентификатору. Принимает JSON с обновленными полями",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "тарифы"
+                ],
+                "summary": "Обновить тариф по его идентификатору",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Идентификатор тарифа",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Тело запроса",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.UpdateTariff"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Tariff"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "entity.Tariff": {
+            "type": "object",
+            "properties": {
+                "cpuPrice": {
+                    "type": "number"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "execPrice": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "memPrice": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.CreateTariff": {
+            "type": "object",
+            "required": [
+                "cpu_price",
+                "exec_price",
+                "mem_price",
+                "name"
+            ],
+            "properties": {
+                "cpu_price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "exec_price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "mem_price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.UpdateTariff": {
+            "type": "object",
+            "properties": {
+                "cpu_price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "exec_price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "mem_price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.GetAllTariffs": {
+            "type": "object",
+            "properties": {
+                "tariffs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.Tariff"
+                    }
+                }
+            }
+        }
+    }
+}

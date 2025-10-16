@@ -1,0 +1,166 @@
+definitions:
+  entity.Tariff:
+    properties:
+      cpuPrice:
+        type: number
+      createdAt:
+        type: string
+      execPrice:
+        type: number
+      id:
+        type: integer
+      memPrice:
+        type: number
+      name:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  request.CreateTariff:
+    properties:
+      cpu_price:
+        minimum: 0
+        type: number
+      exec_price:
+        minimum: 0
+        type: number
+      mem_price:
+        minimum: 0
+        type: number
+      name:
+        type: string
+    required:
+    - cpu_price
+    - exec_price
+    - mem_price
+    - name
+    type: object
+  request.UpdateTariff:
+    properties:
+      cpu_price:
+        minimum: 0
+        type: number
+      exec_price:
+        minimum: 0
+        type: number
+      mem_price:
+        minimum: 0
+        type: number
+      name:
+        type: string
+    type: object
+  response.GetAllTariffs:
+    properties:
+      tariffs:
+        items:
+          $ref: '#/definitions/entity.Tariff'
+        type: array
+    type: object
+info:
+  contact: {}
+paths:
+  /v1/tariff:
+    get:
+      consumes:
+      - application/json
+      description: Получить все тарифы
+      parameters:
+      - default: 10
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.GetAllTariffs'
+      summary: Получить все тарифы
+      tags:
+      - тарифы
+  /v1/tariff/:
+    post:
+      consumes:
+      - application/json
+      description: Создание нового тарифа
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateTariff'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entity.Tariff'
+      summary: Создание нового тарифа
+      tags:
+      - тарифы
+  /v1/tariff/{id}:
+    delete:
+      description: Удалить тариф по его идентификатору
+      parameters:
+      - description: Идентификатор тарифа
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      summary: Удалить тариф по его идентификатору
+      tags:
+      - тарифы
+    get:
+      description: Получить тариф по идентификатору
+      parameters:
+      - description: Идентификатор тарифа
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Tariff'
+      summary: Получить тариф по идентификатору
+      tags:
+      - тарифы
+    patch:
+      consumes:
+      - application/json
+      description: Обновить тариф по его идентификатору. Принимает JSON с обновленными
+        полями
+      parameters:
+      - description: Идентификатор тарифа
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Тело запроса
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateTariff'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Tariff'
+      summary: Обновить тариф по его идентификатору
+      tags:
+      - тарифы
+swagger: "2.0"

@@ -1,0 +1,11 @@
+go 1.25.1
+
+use (
+	./control_plane
+	./invoicer
+	./meter
+	./meter_agent
+	./notifier
+	./pkg
+	./price_service
+)

@@ -1,0 +1,65 @@
+basePath: /
+definitions:
+  httpapi.RunRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      envs:
+        additionalProperties:
+          type: string
+        type: object
+      image_name:
+        example: ealen/echo-server:latest
+        type: string
+    type: object
+  httpapi.RunResponse:
+    properties:
+      container_id:
+        type: string
+      deployment_id:
+        type: integer
+      status:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for running functions on Knative
+  title: Control Plane API
+  version: "1.0"
+paths:
+  /v1/functions/run:
+    post:
+      consumes:
+      - application/json
+      description: Create a Knative service for the provided function image and envs
+      parameters:
+      - description: Request body
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/httpapi.RunRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httpapi.RunResponse'
+        "400":
+          description: invalid json
+          schema:
+            type: string
+        "405":
+          description: method not allowed
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Run a function
+      tags:
+      - functions
+swagger: "2.0"
