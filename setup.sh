@@ -15,7 +15,7 @@ make build_all
 
 # Step 3: Start infrastructure containers
 echo "Step 3: Starting infrastructure (Postgres, Zookeeper, ClickHouse, Kafka)..."
-docker compose up -d postgres zookeeper clickhouse kafka kafka-ui
+docker compose up -d postgres zookeeper clickhouse kafka
 
 # Wait for Postgres and ClickHouse to be ready 
 echo "Waiting for infrastructure services to be ready..."
