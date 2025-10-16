@@ -13,17 +13,18 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/usamaroman/faas_demo/control_plane/internal/config"
 	"github.com/usamaroman/faas_demo/pkg/knative"
+	"github.com/usamaroman/faas_demo/pkg/types"
 	"k8s.io/client-go/rest"
 )
 
 type API struct {
-	cfg      config.Config
-	producer *kafka.Writer // optional
-	restCfg  *rest.Config
+	cfg             config.Config
+	metricsProducer *kafka.Writer // optional
+	restCfg         *rest.Config
 }
 
 func New(cfg config.Config, producer *kafka.Writer, restCfg *rest.Config) *API {
-	return &API{cfg: cfg, producer: producer, restCfg: restCfg}
+	return &API{cfg: cfg, metricsProducer: producer, restCfg: restCfg}
 }
 
 func (a *API) Register(mux *http.ServeMux) {
@@ -118,13 +119,19 @@ func (a *API) handleRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if a.producer != nil && a.cfg.Kafka.Topic != "" {
-		evt := map[string]any{
-			"tenant": req.Email,
-			"pod":    name,
-			"ts":     time.Now().UTC().Format(time.RFC3339Nano),
+	if a.metricsProducer != nil {
+		now := time.Now().UTC().Unix()
+		evt := types.Metric{
+			Pod:        name,
+			CPUPercent: 0,
+			MemMB:      0,
+			Timestamp:  now,
+			Tenant:     req.Email,
+			Type:       "start",
+			StartTime:  now,
+			EndTime:    0,
 		}
-		_ = publishJSON(a.producer, evt)
+		_ = publishJSON(a.metricsProducer, evt)
 	}
 
 	writeJSON(w, http.StatusOK, RunResponse{
@@ -156,23 +163,4 @@ func publishJSON(w *kafka.Writer, payload any) error {
 	}
 	msg := kafka.Message{Value: b}
 	return w.WriteMessages(context.Background(), msg)
-}
-
-// toStringMap converts map[string]any to map[string]string using fmt.Sprint for values.
-func toStringMap(in map[string]any) map[string]string {
-	if len(in) == 0 {
-		return nil
-	}
-	out := make(map[string]string, len(in))
-	for k, v := range in {
-		switch t := v.(type) {
-		case nil:
-			out[k] = ""
-		case string:
-			out[k] = t
-		default:
-			out[k] = fmt.Sprint(t)
-		}
-	}
-	return out
 }

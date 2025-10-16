@@ -6,6 +6,7 @@ CREATE TABLE tariffs (
      exec_price numeric(10, 2),
      mem_price numeric(10, 2),
      cpu_price numeric(10, 2),
+     cold_start_price_per_second numeric(10, 2) NOT NULL DEFAULT 0,
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -21,7 +22,7 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_tariffs_updated_at BEFORE UPDATE ON tariffs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-INSERT INTO tariffs (name, exec_price, mem_price, cpu_price) VALUES ('basic', 0, 0, 0)
+INSERT INTO tariffs (name, exec_price, mem_price, cpu_price, cold_start_price_per_second) VALUES ('basic', 0, 0, 0, 0)
 -- +goose StatementEnd
 
 -- +goose Down

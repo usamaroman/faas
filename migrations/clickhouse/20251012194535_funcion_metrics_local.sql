@@ -5,7 +5,10 @@ CREATE TABLE IF NOT EXISTS metrics.function_metrics_local (
     cpu_percent  Float32,
     mem_mb       Float32,
     timestamp    DateTime,
-    tenant       String
+    tenant       String,
+    type         String,
+    start_time   DateTime,
+    end_time     DateTime
 )
 ENGINE = MergeTree
 PARTITION BY toYYYYMMDD(timestamp)

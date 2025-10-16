@@ -29,12 +29,14 @@ type Config struct {
 }
 
 type NotificationMessage struct {
-	TenantID  string  `json:"tenant_id"`
-	Email     string  `json:"email"`
-	MemoryMB  float64 `json:"memory_mb"`
-	TotalCost float64 `json:"total_cost"`
-	PodName   string  `json:"pod_name"`
-	Timestamp int64   `json:"timestamp"`
+	TenantID         string  `json:"tenant_id"`
+	Email            string  `json:"email"`
+	MemoryMB         float64 `json:"memory_mb"`
+	TotalCost        float64 `json:"total_cost"`
+	PodName          string  `json:"pod_name"`
+	Timestamp        int64   `json:"timestamp"`
+	ColdStartSeconds int64   `json:"cold_start_seconds"`
+	ColdStartCost    float64 `json:"cold_start_cost"`
 }
 
 func main() {
@@ -89,6 +91,7 @@ func main() {
 				<ul>
 					<li><strong>Pod Name:</strong> %s</li>
 					<li><strong>Memory Used:</strong> %.2f MB</li>
+                    <li><strong>Cold Start:</strong> %d seconds ($%.2f)</li>
 					<li><strong>Total Cost:</strong> $%.2f</li>
 					<li><strong>Timestamp:</strong> %s</li>
 				</ul>
@@ -96,7 +99,7 @@ func main() {
 				<p>Best regards,<br>FaaS Team</p>
 			</body>
 			</html>
-		`, notification.TenantID, notification.PodName, notification.MemoryMB, notification.TotalCost,
+        `, notification.TenantID, notification.PodName, notification.MemoryMB, notification.ColdStartSeconds, notification.ColdStartCost, notification.TotalCost,
 			fmt.Sprintf("%d", notification.Timestamp)))
 
 		d := gomail.NewDialer(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.Username, cfg.SMTP.Password)

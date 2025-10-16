@@ -1,6 +1,8 @@
 definitions:
   entity.Tariff:
     properties:
+      coldStartPricePerSecond:
+        type: number
       cpuPrice:
         type: number
       createdAt:
@@ -18,6 +20,9 @@ definitions:
     type: object
   request.CreateTariff:
     properties:
+      cold_start_price_per_second:
+        minimum: 0
+        type: number
       cpu_price:
         minimum: 0
         type: number
@@ -37,6 +42,9 @@ definitions:
     type: object
   request.UpdateTariff:
     properties:
+      cold_start_price_per_second:
+        minimum: 0
+        type: number
       cpu_price:
         minimum: 0
         type: number

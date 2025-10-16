@@ -165,6 +165,9 @@
         "entity.Tariff": {
             "type": "object",
             "properties": {
+                "coldStartPricePerSecond": {
+                    "type": "number"
+                },
                 "cpuPrice": {
                     "type": "number"
                 },
@@ -197,6 +200,10 @@
                 "name"
             ],
             "properties": {
+                "cold_start_price_per_second": {
+                    "type": "number",
+                    "minimum": 0
+                },
                 "cpu_price": {
                     "type": "number",
                     "minimum": 0
@@ -217,6 +224,10 @@
         "request.UpdateTariff": {
             "type": "object",
             "properties": {
+                "cold_start_price_per_second": {
+                    "type": "number",
+                    "minimum": 0
+                },
                 "cpu_price": {
                     "type": "number",
                     "minimum": 0

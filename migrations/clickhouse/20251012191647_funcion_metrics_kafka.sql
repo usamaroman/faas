@@ -5,7 +5,10 @@ CREATE TABLE IF NOT EXISTS metrics.function_metrics_kafka (
     cpu_percent  Float32,
     mem_mb       Float32,
     timestamp    Int64,
-    tenant       String
+    tenant       String,
+    type         String,
+    start_time   Int64,
+    end_time     Int64
 ) ENGINE = Kafka
 SETTINGS 
     kafka_broker_list = 'kafka:29092',

@@ -46,19 +46,19 @@ func run() {
 		os.Exit(1)
 	}
 
-	actionsTopic := os.Getenv("FUNCTION_ACTIONS_TOPIC")
-	if actionsTopic == "" {
-		actionsTopic = "function_actions"
+	metricsTopic := os.Getenv("FUNCTION_METRICS_TOPIC")
+	if metricsTopic == "" {
+		metricsTopic = "function_metrics"
 	}
 
 	brokers := strings.Split(addresses, ",")
 
-	actionsProducer := kafka.NewProducer(kafka.ProducerConfig{Topic: actionsTopic, Addrs: brokers})
+	metricsProducer := kafka.NewProducer(kafka.ProducerConfig{Topic: metricsTopic, Addrs: brokers})
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 
-	api := httpapi.New(cfg, actionsProducer, restCfg)
+	api := httpapi.New(cfg, metricsProducer, restCfg)
 	api.Register(mux)
 
 	slog.Info("control plane listening", slog.String("addr", cfg.HTTP.Addr))
